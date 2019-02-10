@@ -5,6 +5,7 @@
 #include "Engine/World.h" 
 #include "GameFramework/PlayerController.h"
 #include "Runtime/Engine/Public/DrawDebugHelpers.h"
+#include "Runtime/Engine/Classes/Engine/Engine.h"
 
 #define OUT
 
@@ -35,7 +36,7 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// get player view point this tick
+	// 플레이어 뷰포인트 가져오기
 	FVector PlayerViewPointLocation;
 	FRotator PlayerViewPointRotation;
 	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
@@ -43,7 +44,7 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 		OUT PlayerViewPointRotation
 	);
 
-	// TODO Log out to test
+	// LOG
 	/*UE_LOG(LogTemp, Warning, TEXT("Location : %s, Rotation : %s"),
 		*PlayerViewPointLocation.ToString(),
 		*PlayerViewPointRotation.ToString()
@@ -51,7 +52,7 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 
 	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector()*Reach;
 
-	// Draw visualized red trace
+	// 디버그 라인 그리기
 	DrawDebugLine(
 		GetWorld(),
 		PlayerViewPointLocation,
@@ -65,9 +66,9 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 	
 	// 쿼리 변수 설정
 	FCollisionQueryParams TraceParameters (FName(TEXT("")), false, GetOwner());
-		//Tag, Bool ComplexTrace, Ignore 액터
+		//Tag, Bool Trace Complex, Ignore 액터 (자신 제외)
 
-	// Line Trace
+	// 라인트레이스
 	FHitResult Hit;
 
 	GetWorld()->LineTraceSingleByObjectType(
@@ -78,13 +79,15 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 		TraceParameters
 	);
 
+	// 라인트레이스 충돌 체크
 	AActor* ActorHit = Hit.GetActor();
 	if (ActorHit)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Line trace hit: %s"), *(ActorHit->GetName()))
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("You are hitting: %s"), *(ActorHit->GetName())));
 	}
 
 
-	// See what we hit
+	
 }
 
