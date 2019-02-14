@@ -20,7 +20,6 @@ UGrabber::UGrabber()
 
 }
 
-
 // Called when the game starts
 void UGrabber::BeginPlay()
 {
@@ -31,27 +30,22 @@ void UGrabber::BeginPlay()
 	
 }
 
-/// PhysicsHandle
+/// Look for PhysicsHandle Component
 void UGrabber::FindPhysicsHandleComponent()
 {
 	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
-	if (PhysicsHandle)
+	if (PhysicsHandle==nullptr)
 	{
-					
-	}
-	else
-	{
-		
+		UE_LOG(LogTemp, Error, TEXT("%s missing Physics Handle Component component"), *GetOwner()->GetName())
 	}
 }
 
-// InputComponent 
+// Look for InputComponent Component
 void UGrabber::SetupInputComponent()
 {
 	InputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
 	if (InputComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Input component found!"))
 		InputComponent->BindAction("Grab", IE_Pressed, this, &UGrabber::Grab);
 		InputComponent->BindAction("Grab", IE_Released, this, &UGrabber::Release);
 	}
@@ -61,21 +55,19 @@ void UGrabber::SetupInputComponent()
 	}
 }
 
-
-
 void UGrabber::Grab()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Grab!"))
+	// 라인트레이스가 피직스바디에 도달하는지 검사
 	auto HitResult = GetFirstPhysicsBodyInReach();
-	auto ComponentToGrab = HitResult.GetComponent();
+	auto ComponentToGrab = HitResult.GetComponent(); // 메시 가져오기
 	auto ActorHit = HitResult.GetActor();
 
+	// Hit시 PhysicsHanddle 부착
 	if (ActorHit)
 	{
-		// physics handdle 부착
 		PhysicsHandle->GrabComponentAtLocationWithRotation(
 			ComponentToGrab,
-			NAME_None,
+			NAME_None, // Bone (사용X)
 			ComponentToGrab->GetOwner()->GetActorLocation(),
 			ComponentToGrab->GetOwner()->GetActorRotation()
 		);
@@ -84,7 +76,6 @@ void UGrabber::Grab()
 
 void UGrabber::Release()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Release!"))
 		PhysicsHandle->ReleaseComponent();
 }
 
@@ -93,25 +84,11 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// 플레이어 뷰포인트 가져오기
-	FVector PlayerViewPointLocation;
-	FRotator PlayerViewPointRotation;
-	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
-		OUT PlayerViewPointLocation,
-		OUT PlayerViewPointRotation
-	);
 
-	// LOG
-	/*UE_LOG(LogTemp, Warning, TEXT("Location : %s, Rotation : %s"),
-		*PlayerViewPointLocation.ToString(),
-		*PlayerViewPointRotation.ToString()
-	)*/
-
-	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector()*Reach;
 
 	if(PhysicsHandle->GrabbedComponent)
 	{
-		PhysicsHandle->SetTargetLocation(LineTraceEnd);
+		PhysicsHandle->SetTargetLocation(GetReachLineEnd());
 	}
 	
 }
@@ -119,56 +96,40 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 
 const FHitResult UGrabber::GetFirstPhysicsBodyInReach()
 {
-	// 플레이어 뷰포인트 가져오기
+
+// 라인트레이스
+	FHitResult HitResult;
+	FCollisionQueryParams TraceParameters(FName(TEXT("")), false, GetOwner());
+	GetWorld()->LineTraceSingleByObjectType(
+		OUT HitResult,
+		GetReachLineStart(),
+		GetReachLineEnd(),
+		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
+		TraceParameters
+	);
+
+	return HitResult;
+}
+
+FVector UGrabber::GetReachLineStart()
+{
 	FVector PlayerViewPointLocation;
 	FRotator PlayerViewPointRotation;
 	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
 		OUT PlayerViewPointLocation,
 		OUT PlayerViewPointRotation
 	);
-
-	// LOG
-	/*UE_LOG(LogTemp, Warning, TEXT("Location : %s, Rotation : %s"),
-		*PlayerViewPointLocation.ToString(),
-		*PlayerViewPointRotation.ToString()
-	)*/
-
-	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector()*Reach;
-
-	// 디버그 라인 그리기
-	DrawDebugLine(
-		GetWorld(),
-		PlayerViewPointLocation,
-		LineTraceEnd,
-		FColor(255, 0, 0),
-		false,
-		0.f,
-		0.f,
-		10.f
-	);
-
-	// 쿼리 변수 설정
-	FCollisionQueryParams TraceParameters(FName(TEXT("")), false, GetOwner());
-	//Tag, Bool Trace Complex, Ignore 액터 (자신 제외)
-
-// 라인트레이스
-	FHitResult Hit;
-
-	GetWorld()->LineTraceSingleByObjectType(
-		OUT Hit,
-		PlayerViewPointLocation,
-		LineTraceEnd,
-		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
-		TraceParameters
-	);
-
-	// 라인트레이스 충돌 체크
-	AActor* ActorHit = Hit.GetActor();
-	if (ActorHit)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Line trace hit: %s"), *(ActorHit->GetName()))
-			GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("You are hitting: %s"), *(ActorHit->GetName())));
-	}
-
-	return Hit;
+	return PlayerViewPointLocation;
 }
+
+FVector UGrabber::GetReachLineEnd()
+{
+	FVector PlayerViewPointLocation;
+	FRotator PlayerViewPointRotation;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
+		OUT PlayerViewPointLocation,
+		OUT PlayerViewPointRotation
+	);
+	return PlayerViewPointLocation + PlayerViewPointRotation.Vector()*Reach;
+}
+
