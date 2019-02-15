@@ -65,6 +65,8 @@ void UGrabber::Grab()
 	// Hit½Ã PhysicsHanddle ºÎÂø
 	if (ActorHit)
 	{
+		if (!PhysicsHandle) { return; }
+
 		PhysicsHandle->GrabComponentAtLocationWithRotation(
 			ComponentToGrab,
 			NAME_None, // Bone (»ç¿ëX)
@@ -76,7 +78,9 @@ void UGrabber::Grab()
 
 void UGrabber::Release()
 {
-		PhysicsHandle->ReleaseComponent();
+	if (!PhysicsHandle) { return; }
+
+	PhysicsHandle->ReleaseComponent();
 }
 
 // Called every frame
@@ -85,6 +89,7 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 
+	if (!PhysicsHandle) { return; }
 
 	if(PhysicsHandle->GrabbedComponent)
 	{
