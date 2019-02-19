@@ -27,7 +27,7 @@ public:
 
 private:
 	// 라인트레이스 길이
-	float Reach = 100.f;
+	float Reach = 150.f;
 	
 
 	UPhysicsHandleComponent* PhysicsHandle = nullptr;

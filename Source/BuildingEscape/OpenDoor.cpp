@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Runtime/Engine/Classes/GameFramework/Actor.h"
 #include "Runtime/Engine/Classes/Components/PrimitiveComponent.h"
+#include "Runtime/Engine/Classes/Engine/Engine.h"
 
 // Sets default values for this component's properties
 UOpenDoor::UOpenDoor()
@@ -37,7 +38,7 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// Poll the Trigger Volume
-	if (GetTotalMassOfActorsOnPlate()> TriggerMass)
+	if (GetTotalMassOfActorsOnPlate() > TriggerMass)
 	{
 		OnOpen.Broadcast();
 	}
@@ -45,7 +46,7 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	{
 		OnClose.Broadcast();
 	}
-
+	
 }
 
 float UOpenDoor::GetTotalMassOfActorsOnPlate()
@@ -54,15 +55,23 @@ float UOpenDoor::GetTotalMassOfActorsOnPlate()
 
 	// Find all the overlapping actors
 	TArray<AActor*> OverlappingActors;
+
 	if (!PressurePlate) { return TotalMass; }
+
 	PressurePlate->GetOverlappingActors(OUT OverlappingActors);
 
-	// Iterate through them adding their masses
-
+	
+	//모든 mass의 합 더하기 
 	for (const auto* Actor : OverlappingActors)
 	{
-		TotalMass += Actor->FindComponentByClass<UPrimitiveComponent>()->GetMass();
+
+
+		TotalMass += Cast<UPrimitiveComponent>(Actor->GetComponentByClass(UPrimitiveComponent::StaticClass()))->GetMass();
+		
+		
+	
 		UE_LOG(LogTemp,Warning,TEXT("%s on pressure plate"),*Actor->GetName())
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Total Mass: %f"),TotalMass));
 	}
 
 
